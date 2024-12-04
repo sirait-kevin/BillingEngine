@@ -1,0 +1,85 @@
+version: '3.1'
+
+services:
+  # MySQL service
+  mysql:
+    image: mysql:8.0
+    container_name: BillingEngine_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: BillingEngine
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./sqlfiles:/docker-entrypoint-initdb.d  # Mount the sqlfiles folder with init.sql for DB setup
+    networks:
+      - billingengine_network
+
+  # NSQ service (message queue)
+  nsqd:
+    image: nsqio/nsqd:latest
+    container_name: BillingEngine_nsqd
+    ports:
+      - "4150:4150"  # NSQ client communication port
+      - "4151:4151"  # NSQ HTTP API for admin
+    environment:
+      - NSQ_LOG_LEVEL=info
+    networks:
+      - billingengine_network
+
+  # NSQAdmin (web UI for NSQ)
+  nsqadmin:
+    image: nsqio/nsqadmin:latest
+    container_name: BillingEngine_nsqadmin
+    ports:
+      - "4171:4171"  # NSQ Admin web UI
+    environment:
+      - NSQD_TCP_ADDRESS=nsqd:4150
+    networks:
+      - billingengine_network
+    depends_on:
+      - nsqd  # Wait for nsqd to be up before starting nsqadmin
+
+  # BillingEngine application service (Go app)
+  app:
+    build: .
+    container_name: BillingEngine_app
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=rootpassword
+      - MYSQL_DATABASE=BillingEngine
+      - NSQD_ADDRESS=nsqd:4150  # NSQ address for producers/consumers
+      - DEBUG_MODE=true  # Set to 'false' for production
+    ports:
+      - "8080:8080"  # Expose application on port 8080
+    depends_on:
+      - mysql
+      - nsqd
+    networks:
+      - billingengine_network
+    command: ["./main"]  # Assuming you have a Go binary or run your app via `main.go`
+
+  # Optional: A utility container to help with database setup or other tasks (e.g., migration tool)
+  setup:
+    image: mysql:8.0
+    container_name: BillingEngine_db_setup
+    command: bash -c "sleep 10 && /setup.sh"  # Runs setup.sh script after delay
+    depends_on:
+      - mysql
+    networks:
+      - billingengine_network
+    volumes:
+      - ./sqlfiles:/sqlfiles  # Mount sqlfiles to use init.sql or other scripts
+      - ./setup.sh:/setup.sh  # Mount the setup script to be used
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=BillingEngine
+    restart: "no"  # This service only runs once to set up the DB and exit
+
+networks:
+  billingengine_network:
+    driver: bridge
+
+volumes:
+  mysql_data:  # MySQL volume to persist data
