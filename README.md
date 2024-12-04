@@ -2,6 +2,8 @@
 
 Using Clean Architecture
 
+Project Skeleton:
+<pre>
 BillingEngine/
 |-- entities/
 |   |-- user.go
@@ -12,3 +14,4 @@ BillingEngine/
 |-- delivery/
 |   |-- user_handler.go
 |-- main.go
+</pre>
