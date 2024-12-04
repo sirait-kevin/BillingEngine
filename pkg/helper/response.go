@@ -1,8 +1,11 @@
 package helper
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+
+	"github.com/sirait-kevin/BillingEngine/pkg/errs"
 )
 
 type Response struct {
@@ -11,8 +14,18 @@ type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func JSON(w http.ResponseWriter, code int, message string, data interface{}) {
+func JSON(w http.ResponseWriter, ctx context.Context, data interface{}, err error) {
+	var (
+		responseCode = http.StatusOK
+		responseMsg  = "SUCCESS"
+	)
+
+	if err != nil {
+		responseCode = errs.GetHTTPCode(err)
+		responseMsg = err.Error()
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(Response{Code: code, Message: message, Data: data})
+	w.WriteHeader(responseCode)
+	json.NewEncoder(w).Encode(Response{Code: responseCode, Message: responseMsg, Data: data})
 }

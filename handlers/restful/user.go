@@ -5,27 +5,25 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/sirait-kevin/BillingEngine/entities"
-	"github.com/sirait-kevin/BillingEngine/usecases"
-
 	"github.com/gorilla/mux"
+
+	"github.com/sirait-kevin/BillingEngine/entities"
+	"github.com/sirait-kevin/BillingEngine/pkg/errs"
+	"github.com/sirait-kevin/BillingEngine/pkg/helper"
 )
 
-type UserHandler struct {
-	UserUseCase *usecases.UserUseCase
-}
-
 func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	vars := mux.Vars(r)
 	id, err := strconv.ParseInt(vars["id"], 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		helper.JSON(w, ctx, nil, errs.NewWithMessage(http.StatusBadRequest, "Invalid user ID"))
 		return
 	}
 
-	user, err := h.UserUseCase.GetUserByID(id)
+	user, err := h.UserUseCase.GetUserByID(ctx, id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helper.JSON(w, ctx, nil, err)
 		return
 	}
 
@@ -33,19 +31,22 @@ func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var user entities.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		helper.JSON(w, ctx, nil, errs.NewWithMessage(http.StatusBadRequest, "Invalid request payload"))
 		return
 	}
 
-	id, err := h.UserUseCase.CreateUser(&user)
+	id, err := h.UserUseCase.CreateUser(ctx, &user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		helper.JSON(w, ctx, nil, err)
 		return
 	}
 
-	w.Header().Set("Location", "/users/"+strconv.FormatInt(id, 10))
-	w.WriteHeader(http.StatusCreated)
+	helper.JSON(w, ctx, map[string]int64{
+		"user_id": id,
+	}, nil)
+
 }

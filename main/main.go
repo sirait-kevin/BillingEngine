@@ -9,6 +9,8 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/nsqio/go-nsq"
 
+	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/sirait-kevin/BillingEngine/handlers/middleware"
 	"github.com/sirait-kevin/BillingEngine/handlers/mq"
 	"github.com/sirait-kevin/BillingEngine/handlers/restful"
@@ -23,9 +25,13 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	db, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/BillingEngine")
+	// Initialize logger
+	logger.InitLogger(true)
+	logger.Info("Starting BillingEngine...")
+
+	db, err := sql.Open("mysql", "BillingEngine:rootpassword@tcp(localhost:3306)/BillingEngine")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("error open sql", err)
 	}
 	defer db.Close()
 
@@ -35,15 +41,15 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
-	router.HandleFunc("/users/{id}", userHandler.GetUserByID).Methods("GET")
-
 	router.Use(middleware.VerifySignatureMiddleware)
 	router.Use(middleware.LoggingMiddleware)
 	router.Use(middleware.ErrorHandlingMiddleware)
 
-	nsqHandler := &mq.NSQHandler{UserUseCase: userUseCase}
-	startNSQConsumer(nsqHandler)
+	router.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
+	router.HandleFunc("/users/{id}", userHandler.GetUserByID).Methods("GET")
+
+	//nsqHandler := &mq.NSQHandler{UserUseCase: userUseCase}
+	//startNSQConsumer(nsqHandler)
 
 	logger.Log.Info("Starting server on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

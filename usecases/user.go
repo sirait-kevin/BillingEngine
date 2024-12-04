@@ -1,15 +1,19 @@
 package usecases
 
-import "github.com/sirait-kevin/BillingEngine/entities"
+import (
+	"context"
 
-func (u *UserUseCase) GetUserByID(id int64) (*entities.User, error) {
-	return u.UserRepository.GetByID(id)
+	"github.com/sirait-kevin/BillingEngine/entities"
+)
+
+func (u *UserUseCase) GetUserByID(ctx context.Context, id int64) (*entities.User, error) {
+	return u.UserRepository.GetByID(ctx, id)
 }
 
-func (u *UserUseCase) CreateUser(user *entities.User) (int64, error) {
-	return u.UserRepository.Create(user)
+func (u *UserUseCase) CreateUser(ctx context.Context, user *entities.User) (int64, error) {
+	return u.UserRepository.Create(ctx, user)
 }
 
-func (u *UserUseCase) UpdateUser(user *entities.User) error {
-	return u.UserRepository.Update(user)
+func (u *UserUseCase) UpdateUser(ctx context.Context, user *entities.User) error {
+	return u.UserRepository.Update(ctx, user)
 }

@@ -14,6 +14,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/sirait-kevin/BillingEngine/pkg/errs"
 	"github.com/sirait-kevin/BillingEngine/pkg/helper"
 	"github.com/sirait-kevin/BillingEngine/pkg/logger"
 )
@@ -27,22 +28,23 @@ var clientSecrets = map[string]string{
 
 func VerifySignatureMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		clientKey := r.Header.Get("Client-Key")
 		signature := r.Header.Get("X-Signature")
 		if clientKey == "" || signature == "" {
-			helper.JSON(w, http.StatusUnauthorized, "Missing Client-Key or signature", nil)
+			helper.JSON(w, ctx, nil, errs.NewWithMessage(http.StatusBadRequest, "Missing Client-Key or signature"))
 			return
 		}
 
 		secret, ok := clientSecrets[clientKey]
 		if !ok {
-			helper.JSON(w, http.StatusUnauthorized, "Invalid Client-Key", nil)
+			helper.JSON(w, ctx, nil, errs.NewWithMessage(http.StatusUnauthorized, "Invalid Client-Key"))
 			return
 		}
 
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			helper.JSON(w, http.StatusInternalServerError, "Error reading request body", nil)
+			helper.JSON(w, ctx, nil, errs.NewWithMessage(http.StatusInternalServerError, "Error reading request body"))
 			return
 		}
 		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
@@ -53,11 +55,11 @@ func VerifySignatureMiddleware(next http.Handler) http.Handler {
 
 		if !hmac.Equal([]byte(expectedSignature), []byte(signature)) {
 			if os.Getenv("DEBUG_MODE") == "true" {
-				helper.JSON(w, http.StatusUnauthorized, "Invalid signature", map[string]interface{}{
+				helper.JSON(w, ctx, map[string]interface{}{
 					"expected_signature": expectedSignature,
-				})
+				}, errs.NewWithMessage(http.StatusUnauthorized, "Invalid signature"))
 			} else {
-				helper.JSON(w, http.StatusUnauthorized, "Invalid signature", nil)
+				helper.JSON(w, ctx, nil, errs.NewWithMessage(http.StatusUnauthorized, "Invalid signature"))
 			}
 			return
 		}
@@ -99,9 +101,10 @@ func (rw *responseWriter) WriteHeader(code int) {
 func ErrorHandlingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
+			ctx := r.Context()
 			if err := recover(); err != nil {
 				log.Println("Recovered from panic:", err)
-				helper.JSON(w, http.StatusInternalServerError, "Internal Server Error", nil)
+				helper.JSON(w, ctx, nil, errs.NewWithMessage(http.StatusInternalServerError, "Internal Server Error"))
 			}
 		}()
 		next.ServeHTTP(w, r)

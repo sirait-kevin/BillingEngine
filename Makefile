@@ -7,12 +7,12 @@ BUILD_DIR = .
 # Build the Docker containers
 build:
 	@echo "Building Docker images..."
-	$(DOCKER_COMPOSE) -f docker-compose.yml build
+	$(DOCKER_COMPOSE) build
 
 # Run Docker containers in the background
 up:
 	@echo "Starting the application and services..."
-	$(DOCKER_COMPOSE) -f docker-compose.yml up -d
+	$(DOCKER_COMPOSE) up -d
 
 # Run the application locally (inside the container)
 run:

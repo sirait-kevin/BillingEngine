@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 
@@ -17,7 +18,8 @@ type UserDB struct {
 }
 
 func (r *UserRepository) GetByID(ctx context.Context, id int64) (*entities.User, error) {
-	logger := ctx.Value("logger").(*logrus.Logger)
+	fmt.Println("masuk sini")
+	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Fetching user from database by ID: ", id)
 
 	user := &entities.User{}
