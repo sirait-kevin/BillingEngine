@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -49,9 +47,7 @@ func VerifySignatureMiddleware(next http.Handler) http.Handler {
 		}
 		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
-		hash := hmac.New(sha256.New, []byte(secret))
-		hash.Write(body)
-		expectedSignature := hex.EncodeToString(hash.Sum(nil))
+		expectedSignature := helper.GenerateSignature(secret, r.RequestURI+string(body))
 
 		if !hmac.Equal([]byte(expectedSignature), []byte(signature)) {
 			if os.Getenv("DEBUG_MODE") == "true" {

@@ -17,7 +17,7 @@ up:
 # Run the application locally (inside the container)
 run:
 	@echo "Running the app..."
-	$(DOCKER_COMPOSE) exec $(APP_NAME) ./main
+	@go run main/main.go
 
 # Stop Docker containers
 down:
@@ -36,11 +36,6 @@ clean:
 
 # Rebuild and restart the containers
 rebuild: down build up
-
-# Run the database setup manually (if needed)
-db-setup:
-	@echo "Running database setup..."
-	$(DOCKER_COMPOSE) run --rm setup
 
 # Start the application in debug mode
 debug:

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
 
@@ -9,14 +8,15 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/nsqio/go-nsq"
 
-	_ "github.com/go-sql-driver/mysql"
-
 	"github.com/sirait-kevin/BillingEngine/handlers/middleware"
 	"github.com/sirait-kevin/BillingEngine/handlers/mq"
 	"github.com/sirait-kevin/BillingEngine/handlers/restful"
 	"github.com/sirait-kevin/BillingEngine/pkg/logger"
 	"github.com/sirait-kevin/BillingEngine/repositories"
 	"github.com/sirait-kevin/BillingEngine/usecases"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
@@ -29,9 +29,9 @@ func main() {
 	logger.InitLogger(true)
 	logger.Info("Starting BillingEngine...")
 
-	db, err := sql.Open("mysql", "BillingEngine:rootpassword@tcp(localhost:3306)/BillingEngine")
+	db, err := sqlx.Connect("mysql", "BillingEngine:rootpassword@tcp(localhost:3306)/BillingEngine")
 	if err != nil {
-		log.Fatal("error open sql", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 

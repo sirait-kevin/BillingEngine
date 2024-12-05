@@ -27,7 +27,7 @@ func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(user)
+	helper.JSON(w, ctx, user, nil)
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {

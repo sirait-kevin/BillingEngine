@@ -1,7 +1,7 @@
 package repositories
 
-import "database/sql"
+import "github.com/jmoiron/sqlx"
 
 type UserRepository struct {
-	DB *sql.DB
+	DB *sqlx.DB
 }

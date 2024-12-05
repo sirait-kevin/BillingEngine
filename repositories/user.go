@@ -44,7 +44,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*entities.User,
 }
 
 func (r *UserRepository) Create(ctx context.Context, user *entities.User) (int64, error) {
-	logger := ctx.Value("logger").(*logrus.Logger)
+	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Inserting user into database: ", user)
 	var (
 		err    error

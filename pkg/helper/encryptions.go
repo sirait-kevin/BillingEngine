@@ -3,7 +3,10 @@ package helper
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
+	"fmt"
 	"io"
 
 	"golang.org/x/crypto/bcrypt"
@@ -47,4 +50,12 @@ func Decrypt(cipherText []byte) (string, error) {
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
+}
+
+// GenerateSignature where key = is secret key)
+func GenerateSignature(key, data string) string {
+	h := hmac.New(sha256.New, []byte(key))
+	io.WriteString(h, data)
+
+	return fmt.Sprintf("%x", string(h.Sum(nil)))
 }
