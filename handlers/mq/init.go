@@ -1,12 +1,8 @@
 package mq
 
 import (
-	"encoding/json"
-	"log"
-
 	"github.com/nsqio/go-nsq"
 
-	"github.com/sirait-kevin/BillingEngine/entities"
 	"github.com/sirait-kevin/BillingEngine/usecases"
 )
 
@@ -16,12 +12,12 @@ type NSQHandler struct {
 
 func (h *NSQHandler) HandleMessage(message *nsq.Message) error {
 	//ctx := context.Background()
-	var user entities.User
-	err := json.Unmarshal(message.Body, &user)
-	if err != nil {
-		log.Printf("Error unmarshalling message: %v", err)
-		return err
-	}
+	//var user entities.User
+	//err := json.Unmarshal(message.Body, &user)
+	//if err != nil {
+	//	log.Printf("Error unmarshalling message: %v", err)
+	//	return err
+	//}
 
 	//err = h.UserUseCase.UpdateUser(ctx, &user)
 	//if err != nil {
@@ -29,6 +25,6 @@ func (h *NSQHandler) HandleMessage(message *nsq.Message) error {
 	//	return err
 	//}
 
-	log.Printf("User updated successfully: %v", user)
+	//log.Printf("User updated successfully: %v", user)
 	return nil
 }
