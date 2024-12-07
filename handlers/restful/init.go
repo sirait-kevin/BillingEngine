@@ -15,6 +15,6 @@ type BillingUsecase interface {
 	MakePayment(ctx context.Context, repaymentRequest entities.Repayment) error
 }
 
-type UserHandler struct {
+type BillingHandler struct {
 	BillingUC BillingUsecase
 }

@@ -39,7 +39,7 @@ func main() {
 	billingUsecase := &usecases.BillingUseCase{
 		DBRepo: dbRepository,
 	}
-	userHandler := &restful.UserHandler{BillingUC: billingUsecase}
+	billingHandler := &restful.BillingHandler{BillingUC: billingUsecase}
 
 	router := mux.NewRouter()
 
@@ -47,8 +47,11 @@ func main() {
 	router.Use(middleware.LoggingMiddleware)
 	router.Use(middleware.ErrorHandlingMiddleware)
 
-	router.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
-	router.HandleFunc("/users/{id}", userHandler.GetUserByID).Methods("GET")
+	router.HandleFunc("/users", billingHandler.CreateUser).Methods("POST")
+	router.HandleFunc("/user", billingHandler.GetUserByID).Methods("GET")
+
+	router.HandleFunc("create/loan", billingHandler.CreateUser).Methods(http.MethodPost)
+	router.HandleFunc("loan/history", billingHandler.CreateUser).Methods(http.MethodGet)
 
 	//nsqHandler := &mq.NSQHandler{BillingUseCase: useCase}
 	//startNSQConsumer(nsqHandler)

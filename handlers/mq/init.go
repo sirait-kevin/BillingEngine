@@ -1,7 +1,6 @@
 package mq
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 
@@ -16,7 +15,7 @@ type NSQHandler struct {
 }
 
 func (h *NSQHandler) HandleMessage(message *nsq.Message) error {
-	ctx := context.Background()
+	//ctx := context.Background()
 	var user entities.User
 	err := json.Unmarshal(message.Body, &user)
 	if err != nil {
@@ -24,11 +23,11 @@ func (h *NSQHandler) HandleMessage(message *nsq.Message) error {
 		return err
 	}
 
-	err = h.UserUseCase.UpdateUser(ctx, &user)
-	if err != nil {
-		log.Printf("Error updating user: %v", err)
-		return err
-	}
+	//err = h.UserUseCase.UpdateUser(ctx, &user)
+	//if err != nil {
+	//	log.Printf("Error updating user: %v", err)
+	//	return err
+	//}
 
 	log.Printf("User updated successfully: %v", user)
 	return nil
