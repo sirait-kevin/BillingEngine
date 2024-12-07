@@ -7,7 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/sirait-kevin/BillingEngine/entities"
+	"github.com/sirait-kevin/BillingEngine/domain/entities"
 	"github.com/sirait-kevin/BillingEngine/pkg/errs"
 )
 

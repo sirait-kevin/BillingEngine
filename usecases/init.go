@@ -3,8 +3,8 @@ package usecases
 import (
 	"context"
 
-	"github.com/sirait-kevin/BillingEngine/entities"
-	"github.com/sirait-kevin/BillingEngine/interfaces"
+	"github.com/sirait-kevin/BillingEngine/domain/entities"
+	"github.com/sirait-kevin/BillingEngine/domain/interfaces"
 )
 
 type DBRepository interface {

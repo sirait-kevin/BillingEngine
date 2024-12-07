@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/sirait-kevin/BillingEngine/entities"
+	"github.com/sirait-kevin/BillingEngine/domain/entities"
 	"github.com/sirait-kevin/BillingEngine/pkg/errs"
 	"github.com/sirait-kevin/BillingEngine/pkg/helper"
 )

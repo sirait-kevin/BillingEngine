@@ -7,12 +7,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sirait-kevin/BillingEngine/entities"
+	entities2 "github.com/sirait-kevin/BillingEngine/domain/entities"
 	"github.com/sirait-kevin/BillingEngine/pkg/errs"
 	"github.com/sirait-kevin/BillingEngine/pkg/helper"
 )
 
-func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.LoanRequest) (int64, error) {
+func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities2.LoanRequest) (int64, error) {
 	var errMessage []string
 
 	if loanRequest.ReferenceId == "" {
@@ -40,12 +40,12 @@ func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.Lo
 
 	repaymentAmount := int64(math.Round(float64(loanRequest.Amount / int64(loanRequest.Tenor))))
 
-	loanId, err := u.DBRepo.CreateLoan(ctx, entities.Loan{
+	loanId, err := u.DBRepo.CreateLoan(ctx, entities2.Loan{
 		ReferenceId:       loanRequest.ReferenceId,
 		UserId:            loanRequest.UserId,
 		Amount:            loanRequest.Amount,
 		RatePercentage:    loanRequest.RatePercentage,
-		Status:            entities.LoanStatusActive,
+		Status:            entities2.LoanStatusActive,
 		RepaymentSchedule: loanRequest.RepaymentSchedule,
 		Tenor:             loanRequest.Tenor,
 		RepaymentAmount:   repaymentAmount,
@@ -57,7 +57,7 @@ func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.Lo
 
 }
 
-func (u *BillingUseCase) GetLoanHistoryByReferenceID(ctx context.Context, referenceId string) (*entities.LoanHistory, error) {
+func (u *BillingUseCase) GetLoanHistoryByReferenceID(ctx context.Context, referenceId string) (*entities2.LoanHistory, error) {
 
 	if referenceId == "" {
 		return nil, errs.NewWithMessage(http.StatusBadRequest, "reference id can not be empty")
@@ -75,13 +75,13 @@ func (u *BillingUseCase) GetLoanHistoryByReferenceID(ctx context.Context, refere
 		}
 	}
 
-	return &entities.LoanHistory{
+	return &entities2.LoanHistory{
 		Loan:       *loan,
 		Repayments: *repayments,
 	}, nil
 }
 
-func (u *BillingUseCase) GetOutStandingAmountByReferenceID(ctx context.Context, referenceId string) (*entities.OutStanding, error) {
+func (u *BillingUseCase) GetOutStandingAmountByReferenceID(ctx context.Context, referenceId string) (*entities2.OutStanding, error) {
 	if referenceId == "" {
 		return nil, errs.NewWithMessage(http.StatusBadRequest, "reference id can not be empty")
 	}
@@ -98,7 +98,7 @@ func (u *BillingUseCase) GetOutStandingAmountByReferenceID(ctx context.Context, 
 
 	totalLoan := loan.RepaymentAmount * int64(loan.Tenor)
 
-	return &entities.OutStanding{
+	return &entities2.OutStanding{
 		LoanId:            loan.Id,
 		LoanReferenceId:   loan.ReferenceId,
 		OutstandingAmount: totalLoan - totalRepayments,
@@ -120,7 +120,7 @@ func (u *BillingUseCase) GetUserStatusIsDelinquent(ctx context.Context, userId i
 	var wg sync.WaitGroup
 	for i, loan := range *loans {
 		wg.Add(1)
-		go func(i int, loan entities.Loan) {
+		go func(i int, loan entities2.Loan) {
 			defer wg.Done()
 			repaymentCounts[loan.Id], errWg[i] = u.DBRepo.SelectRepaymentCountByLoanId(ctx, loan.Id)
 			if errWg[i] != nil {
@@ -149,7 +149,7 @@ func (u *BillingUseCase) GetUserStatusIsDelinquent(ctx context.Context, userId i
 	return false, nil
 }
 
-func (u *BillingUseCase) GetRepaymentInquiryByLoanReferenceId(ctx context.Context, referenceId string) (*entities.RepaymentInquiry, error) {
+func (u *BillingUseCase) GetRepaymentInquiryByLoanReferenceId(ctx context.Context, referenceId string) (*entities2.RepaymentInquiry, error) {
 	if referenceId == "" {
 		return nil, errs.NewWithMessage(http.StatusBadRequest, "reference id can not be empty")
 	}
@@ -168,37 +168,37 @@ func (u *BillingUseCase) GetRepaymentInquiryByLoanReferenceId(ctx context.Contex
 
 	missRepaymentCount := helper.MonthsBetween(loan.CreatedAt, u.Clock.Now()) + 1 - repaymentCount
 	if missRepaymentCount == 0 {
-		return &entities.RepaymentInquiry{
+		return &entities2.RepaymentInquiry{
 			LoanId:          loan.Id,
 			LoanReferenceId: loan.ReferenceId,
 			RepaymentNeeded: nil,
 		}, nil
 	}
 
-	needRepayments := make([]entities.RepaymentNeeded, missRepaymentCount)
+	needRepayments := make([]entities2.RepaymentNeeded, missRepaymentCount)
 	for i := 0; i < len(needRepayments); i++ {
 
 		dueDate := loan.CreatedAt.AddDate(0, i, 0)
 		isLate := u.Clock.Now().After(dueDate)
 
-		needRepayments[i] = entities.RepaymentNeeded{
+		needRepayments[i] = entities2.RepaymentNeeded{
 			Amount:  loan.RepaymentAmount,
 			DueDate: dueDate,
 			IsLate:  isLate,
 		}
 	}
 
-	return &entities.RepaymentInquiry{
+	return &entities2.RepaymentInquiry{
 		LoanId:          loan.Id,
 		LoanReferenceId: referenceId,
 		RepaymentNeeded: needRepayments,
 	}, nil
 }
 
-func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entities.RepaymentRequest) (int64, error) {
+func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entities2.RepaymentRequest) (int64, error) {
 	var (
 		errMessage           []string
-		loan                 *entities.Loan
+		loan                 *entities2.Loan
 		repaymentTotalAmount int64
 		repaymentId          int64
 
@@ -238,7 +238,7 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 		return 0, errs.NewWithMessage(http.StatusBadRequest, "payment amount is invalid")
 	}
 
-	repaymentId, err = u.DBRepo.CreateRepayment(ctx, entities.Repayment{
+	repaymentId, err = u.DBRepo.CreateRepayment(ctx, entities2.Repayment{
 		LoanId:      loan.Id,
 		ReferenceId: repaymentRequest.RepaymentReferenceId,
 		Amount:      repaymentRequest.Amount,
