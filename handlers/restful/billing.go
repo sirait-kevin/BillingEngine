@@ -92,7 +92,7 @@ func (h *BillingHandler) GetUserStatus(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-func (h *BillingHandler) GetRepaymentInquiry(w http.ResponseWriter, r *http.Request) {
+func (h *BillingHandler) GetPaymentInquiry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	referenceId := r.FormValue("loan_reference_id")
 

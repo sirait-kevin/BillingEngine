@@ -47,13 +47,13 @@ func main() {
 	router.Use(middleware.LoggingMiddleware)
 	router.Use(middleware.ErrorHandlingMiddleware)
 
-	router.HandleFunc("/users", billingHandler.CreateUser).Methods("POST")
-	router.HandleFunc("/user", billingHandler.GetUserByID).Methods("GET")
-
 	router.HandleFunc("create/loan", billingHandler.CreateLoan).Methods(http.MethodPost)
-	router.HandleFunc("create/payment", billingHandler.CreateUser).Methods(http.MethodPost)
+	router.HandleFunc("make/payment", billingHandler.MakePayment).Methods(http.MethodPost)
 
-	router.HandleFunc("loan/history", billingHandler.CreateUser).Methods(http.MethodGet)
+	router.HandleFunc("loan/history", billingHandler.GetLoanHistory).Methods(http.MethodGet)
+	router.HandleFunc("outstanding/amount", billingHandler.GetOutStandingAmount).Methods(http.MethodGet)
+	router.HandleFunc("user/status", billingHandler.GetOutStandingAmount).Methods(http.MethodGet)
+	router.HandleFunc("payment/inquiry", billingHandler.GetOutStandingAmount).Methods(http.MethodGet)
 
 	//nsqHandler := &mq.NSQHandler{BillingUseCase: useCase}
 	//startNSQConsumer(nsqHandler)

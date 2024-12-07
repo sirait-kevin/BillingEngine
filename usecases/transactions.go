@@ -12,7 +12,7 @@ import (
 	"github.com/sirait-kevin/BillingEngine/pkg/helper"
 )
 
-func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.Loan) (int64, error) {
+func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.LoanRequest) (int64, error) {
 	var errMessage []string
 
 	if loanRequest.ReferenceId == "" {
