@@ -50,7 +50,9 @@ func main() {
 	router.HandleFunc("/users", billingHandler.CreateUser).Methods("POST")
 	router.HandleFunc("/user", billingHandler.GetUserByID).Methods("GET")
 
-	router.HandleFunc("create/loan", billingHandler.CreateUser).Methods(http.MethodPost)
+	router.HandleFunc("create/loan", billingHandler.CreateLoan).Methods(http.MethodPost)
+	router.HandleFunc("create/payment", billingHandler.CreateUser).Methods(http.MethodPost)
+
 	router.HandleFunc("loan/history", billingHandler.CreateUser).Methods(http.MethodGet)
 
 	//nsqHandler := &mq.NSQHandler{BillingUseCase: useCase}

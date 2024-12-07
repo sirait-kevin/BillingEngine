@@ -195,27 +195,58 @@ func (u *BillingUseCase) GetRepaymentInquiryByLoanReferenceId(ctx context.Contex
 	}, nil
 }
 
-func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entities.Repayment) error {
-	var errMessage []string
+func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entities.RepaymentRequest) (int64, error) {
+	var (
+		errMessage           []string
+		loan                 *entities.Loan
+		repaymentTotalAmount int64
+		repaymentId          int64
 
-	if repaymentRequest.LoanId < 1 {
-		errMessage = append(errMessage, "loan id is invalid")
+		err error
+	)
+
+	if repaymentRequest.LoanReferenceId == "" {
+		errMessage = append(errMessage, "loan reference id can not be empty")
 	}
 	if repaymentRequest.Amount < 1 {
 		errMessage = append(errMessage, "amount is invalid")
 	}
-	if repaymentRequest.ReferenceId == "" {
+	if repaymentRequest.RepaymentReferenceId == "" {
 		errMessage = append(errMessage, "reference id can not be empty")
 	}
 	if errMessage != nil || len(errMessage) != 0 {
-		return errs.NewWithMessage(http.StatusBadRequest, strings.Join(errMessage, "; "))
+		return 0, errs.NewWithMessage(http.StatusBadRequest, strings.Join(errMessage, "; "))
 	}
 
-	err := u.MakePayment(ctx, repaymentRequest)
+	loan, err = u.DBRepo.SelectLoanByReferenceId(ctx, repaymentRequest.LoanReferenceId)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+
+	repaymentTotalAmount, err = u.DBRepo.SelectTotalRepaymentAmountByLoanId(ctx, loan.Id)
+	if err != nil {
+		if errs.GetHTTPCode(err) != http.StatusNotFound {
+			return 0, err
+		}
+	}
+
+	if repaymentTotalAmount == loan.RepaymentAmount*int64(loan.Tenor) {
+		return 0, errs.NewWithMessage(http.StatusBadRequest, "loan has already fully paid")
+	}
+
+	if loan.RepaymentAmount != repaymentRequest.Amount {
+		return 0, errs.NewWithMessage(http.StatusBadRequest, "payment amount is invalid")
+	}
+
+	repaymentId, err = u.DBRepo.CreateRepayment(ctx, entities.Repayment{
+		LoanId:      loan.Id,
+		ReferenceId: repaymentRequest.RepaymentReferenceId,
+		Amount:      repaymentRequest.Amount,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return repaymentId, nil
 }
 
 func IsUserValid(userId int64) bool {
