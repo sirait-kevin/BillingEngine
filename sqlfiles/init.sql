@@ -2,17 +2,6 @@ CREATE DATABASE IF NOT EXISTS BillingEngine;
 
 USE BillingEngine;
 
--- Create the users table
-CREATE TABLE users
-(
-	id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-	encrypted_name  BLOB         NOT NULL,
-	encrypted_email BLOB         NOT NULL,
-	hashed_password VARCHAR(255) NOT NULL,
-	created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
 -- Create the loans table
 CREATE TABLE loans
 (
@@ -24,8 +13,7 @@ CREATE TABLE loans
 	repayment_amount BIGINT       NOT NULL,
 	status           INT          NOT NULL,
 	created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	updated_at       TIMESTAMP DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-	FOREIGN KEY (user_id) REFERENCES users (id)
+	updated_at       TIMESTAMP DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Create the repayments table
