@@ -35,3 +35,12 @@ func GetHTTPCode(err error) int {
 func (e *Error) HTTPCode() int {
 	return e.code
 }
+
+// New error object
+func Wrap(code int, err error) *Error {
+	return &Error{
+		code:    code,
+		message: err.Error(),
+		err:     err,
+	}
+}

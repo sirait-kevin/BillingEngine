@@ -35,8 +35,8 @@ func main() {
 	}
 	defer db.Close()
 
-	userRepository := &repositories.UserRepository{DB: db}
-	userUseCase := &usecases.UserUseCase{UserRepository: userRepository}
+	userRepository := &repositories.DBRepository{DB: db}
+	userUseCase := &usecases.UserUseCase{DBRepo: userRepository}
 	userHandler := &restful.UserHandler{UserUseCase: userUseCase}
 
 	router := mux.NewRouter()

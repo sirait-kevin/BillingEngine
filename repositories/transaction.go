@@ -2,10 +2,13 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
+	"net/http"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/sirait-kevin/BillingEngine/entities"
+	"github.com/sirait-kevin/BillingEngine/pkg/errs"
 )
 
 const (
@@ -34,7 +37,7 @@ const (
 			WHERE loan_id = ?;`
 )
 
-func (r *UserRepository) CreateLoan(ctx context.Context, loan *entities.Loan) (int64, error) {
+func (r *DBRepository) CreateLoan(ctx context.Context, loan *entities.Loan) (int64, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Inserting loan into database: ", loan)
 	var (
@@ -55,7 +58,48 @@ func (r *UserRepository) CreateLoan(ctx context.Context, loan *entities.Loan) (i
 	return id, nil
 }
 
-func (r *UserRepository) CreateRepayment(ctx context.Context, repayment *entities.Repayment) (int64, error) {
+func (r *DBRepository) SelectLoanByReferenceId(ctx context.Context, referenceID string) (*entities.Loan, error) {
+	logger := ctx.Value("logger").(*logrus.Entry)
+	logger.Debug("select loan by reference id: ", referenceID)
+	var (
+		err  error
+		loan = &entities.Loan{}
+	)
+
+	err = r.DB.GetContext(ctx, &loan, selectLoanByReferenceIdQuery, referenceID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = errs.Wrap(http.StatusNotFound, err)
+		}
+		logger.Error("Error fetching repayment: ", err)
+		return nil, err
+	}
+
+	return loan, nil
+
+}
+
+func (r *DBRepository) SelectLoanByUserId(ctx context.Context, userId int64) (*[]entities.Loan, error) {
+	logger := ctx.Value("logger").(*logrus.Entry)
+	logger.Debug("select loan by user id: ", userId)
+	var (
+		err  error
+		loan = &[]entities.Loan{}
+	)
+
+	err = r.DB.SelectContext(ctx, &loan, selectLoanByUserIdQuery, userId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = errs.Wrap(http.StatusNotFound, err)
+		}
+		logger.Error("Error fetching repayment: ", err)
+		return nil, err
+	}
+
+	return loan, nil
+}
+
+func (r *DBRepository) CreateRepayment(ctx context.Context, repayment *entities.Repayment) (int64, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Inserting loan repayment database: ", repayment)
 	var (
@@ -76,7 +120,7 @@ func (r *UserRepository) CreateRepayment(ctx context.Context, repayment *entitie
 	return id, nil
 }
 
-func (r *UserRepository) SelectRepaymentByReferenceId(ctx context.Context, referenceID string) (*entities.Repayment, error) {
+func (r *DBRepository) SelectRepaymentByReferenceId(ctx context.Context, referenceID string) (*entities.Repayment, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("select repayment by reference id: ", referenceID)
 	var (
@@ -84,9 +128,11 @@ func (r *UserRepository) SelectRepaymentByReferenceId(ctx context.Context, refer
 		repayment = &entities.Repayment{}
 	)
 
-	err = r.DB.QueryRowContext(ctx, selectLoanByReferenceIdQuery, referenceID).
-		Scan(&repayment.Id, &repayment.ReferenceId, &repayment.Amount, &repayment.CreatedAt, &repayment.UpdatedAt)
+	err = r.DB.GetContext(ctx, &repayment, selectLoanByReferenceIdQuery, referenceID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			err = errs.Wrap(http.StatusNotFound, err)
+		}
 		logger.Error("Error fetching repayment: ", err)
 		return nil, err
 	}
@@ -95,7 +141,7 @@ func (r *UserRepository) SelectRepaymentByReferenceId(ctx context.Context, refer
 
 }
 
-func (r *UserRepository) SelectRepaymentByLoanId(ctx context.Context, referenceID string) (*[]entities.Repayment, error) {
+func (r *DBRepository) SelectRepaymentByLoanId(ctx context.Context, referenceID string) (*[]entities.Repayment, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("select repayment by loan id: ", referenceID)
 	var (
@@ -105,10 +151,12 @@ func (r *UserRepository) SelectRepaymentByLoanId(ctx context.Context, referenceI
 
 	err = r.DB.SelectContext(ctx, &repayments, selectRepaymentByLoanId)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			err = errs.Wrap(http.StatusNotFound, err)
+		}
 		logger.Error("Error fetching repayment: ", err)
 		return nil, err
 	}
 
 	return repayments, nil
-
 }

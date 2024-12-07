@@ -2,11 +2,14 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"net/http"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/sirait-kevin/BillingEngine/entities"
+	"github.com/sirait-kevin/BillingEngine/pkg/errs"
 	"github.com/sirait-kevin/BillingEngine/pkg/helper"
 )
 
@@ -17,7 +20,7 @@ type UserDB struct {
 	HashedPassword string `json:"hashed_password"`
 }
 
-func (r *UserRepository) GetByID(ctx context.Context, id int64) (*entities.User, error) {
+func (r *DBRepository) GetByID(ctx context.Context, id int64) (*entities.User, error) {
 	fmt.Println("masuk sini")
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Fetching user from database by ID: ", id)
@@ -27,6 +30,9 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*entities.User,
 
 	err := r.DB.QueryRowContext(ctx, "SELECT id, encrypted_name, encrypted_email, hashed_password FROM users WHERE id = ?", id).Scan(&user.ID, &userDB.EncryptedName, &userDB.EncryptedEmail, &userDB.HashedPassword)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			err = errs.Wrap(http.StatusNotFound, err)
+		}
 		logger.Error("Error fetching user: ", err)
 		return nil, err
 	}
@@ -43,7 +49,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*entities.User,
 	return user, nil
 }
 
-func (r *UserRepository) Create(ctx context.Context, user *entities.User) (int64, error) {
+func (r *DBRepository) Create(ctx context.Context, user *entities.User) (int64, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Inserting user into database: ", user)
 	var (
@@ -78,7 +84,7 @@ func (r *UserRepository) Create(ctx context.Context, user *entities.User) (int64
 	return id, nil
 }
 
-func (r *UserRepository) Update(ctx context.Context, user *entities.User) error {
+func (r *DBRepository) Update(ctx context.Context, user *entities.User) error {
 	logger := ctx.Value("logger").(*logrus.Logger)
 	logger.Debug("Updating user in database: ", user)
 	var (
