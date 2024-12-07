@@ -35,9 +35,11 @@ func main() {
 	}
 	defer db.Close()
 
-	userRepository := &repositories.DBRepository{DB: db}
-	userUseCase := &usecases.UserUseCase{DBRepo: userRepository}
-	userHandler := &restful.UserHandler{UserUseCase: userUseCase}
+	dbRepository := &repositories.DBRepository{DB: db}
+	billingUsecase := &usecases.BillingUseCase{
+		DBRepo: dbRepository,
+	}
+	userHandler := &restful.UserHandler{BillingUC: billingUsecase}
 
 	router := mux.NewRouter()
 
@@ -48,7 +50,7 @@ func main() {
 	router.HandleFunc("/users", userHandler.CreateUser).Methods("POST")
 	router.HandleFunc("/users/{id}", userHandler.GetUserByID).Methods("GET")
 
-	//nsqHandler := &mq.NSQHandler{UserUseCase: userUseCase}
+	//nsqHandler := &mq.NSQHandler{BillingUseCase: useCase}
 	//startNSQConsumer(nsqHandler)
 
 	logger.Log.Info("Starting server on :8080")

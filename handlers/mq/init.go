@@ -12,7 +12,7 @@ import (
 )
 
 type NSQHandler struct {
-	UserUseCase *usecases.UserUseCase
+	UserUseCase *usecases.BillingUseCase
 }
 
 func (h *NSQHandler) HandleMessage(message *nsq.Message) error {

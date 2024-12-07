@@ -21,7 +21,7 @@ func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.UserUseCase.GetUserByID(ctx, id)
+	user, err := h.BillingUC.GetUserByID(ctx, id)
 	if err != nil {
 		helper.JSON(w, ctx, nil, err)
 		return
@@ -39,7 +39,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.UserUseCase.CreateUser(ctx, &user)
+	id, err := h.BillingUC.CreateUser(ctx, &user)
 	if err != nil {
 		helper.JSON(w, ctx, nil, err)
 		return

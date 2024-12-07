@@ -6,12 +6,15 @@ import (
 	"github.com/sirait-kevin/BillingEngine/entities"
 )
 
-type UserUseCase interface {
-	GetUserByID(ctx context.Context, id int64) (*entities.User, error)
-	CreateUser(ctx context.Context, user *entities.User) (int64, error)
-	UpdateUser(ctx context.Context, user *entities.User) error
+type BillingUsecase interface {
+	CreateLoan(ctx context.Context, loanRequest entities.Loan) (int64, error)
+	GetLoanHistoryByReferenceID(ctx context.Context, referenceId string) (*entities.LoanHistory, error)
+	GetOutStandingAmountByReferenceID(ctx context.Context, referenceId string) (*entities.OutStanding, error)
+	GetUserStatusIsDelinquent(ctx context.Context, userId int64) (bool, error)
+	GetRepaymentInquiryByLoanReferenceId(ctx context.Context, referenceId string) (*entities.RepaymentInquiry, error)
+	MakePayment(ctx context.Context, repaymentRequest entities.Repayment) error
 }
 
 type UserHandler struct {
-	UserUseCase UserUseCase
+	BillingUC BillingUsecase
 }

@@ -35,9 +35,17 @@ const (
 	selectRepaymentByLoanId = `SELECT id, loan_id, reference_id, amount, created_at, updated_at
 			FROM repayments
 			WHERE loan_id = ?;`
+
+	selectTotalRepaymentAmountByLoanId = `SELECT SUM(amount)
+			FROM repayments
+			WHERE loan_id = ?;`
+
+	selectRepaymentCountByLoanId = `SELECT COUNT(id)
+			FROM repayments
+			WHERE loan_id = ?;`
 )
 
-func (r *DBRepository) CreateLoan(ctx context.Context, loan *entities.Loan) (int64, error) {
+func (r *DBRepository) CreateLoan(ctx context.Context, loan entities.Loan) (int64, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Inserting loan into database: ", loan)
 	var (
@@ -99,7 +107,7 @@ func (r *DBRepository) SelectLoanByUserId(ctx context.Context, userId int64) (*[
 	return loan, nil
 }
 
-func (r *DBRepository) CreateRepayment(ctx context.Context, repayment *entities.Repayment) (int64, error) {
+func (r *DBRepository) CreateRepayment(ctx context.Context, repayment entities.Repayment) (int64, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Inserting loan repayment database: ", repayment)
 	var (
@@ -141,15 +149,15 @@ func (r *DBRepository) SelectRepaymentByReferenceId(ctx context.Context, referen
 
 }
 
-func (r *DBRepository) SelectRepaymentByLoanId(ctx context.Context, referenceID string) (*[]entities.Repayment, error) {
+func (r *DBRepository) SelectRepaymentByLoanId(ctx context.Context, loanId int64) (*[]entities.Repayment, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
-	logger.Debug("select repayment by loan id: ", referenceID)
+	logger.Debug("select repayment by loan id: ", loanId)
 	var (
 		err        error
 		repayments = &[]entities.Repayment{}
 	)
 
-	err = r.DB.SelectContext(ctx, &repayments, selectRepaymentByLoanId)
+	err = r.DB.SelectContext(ctx, &repayments, selectRepaymentByLoanId, loanId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			err = errs.Wrap(http.StatusNotFound, err)
@@ -159,4 +167,44 @@ func (r *DBRepository) SelectRepaymentByLoanId(ctx context.Context, referenceID 
 	}
 
 	return repayments, nil
+}
+
+func (r *DBRepository) SelectTotalRepaymentAmountByLoanId(ctx context.Context, loanId int64) (int64, error) {
+	logger := ctx.Value("logger").(*logrus.Entry)
+	logger.Debug("select total repayments by loan id: ", loanId)
+	var (
+		err            error
+		totalRepayment int64
+	)
+
+	err = r.DB.SelectContext(ctx, &totalRepayment, selectTotalRepaymentAmountByLoanId, loanId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = errs.Wrap(http.StatusNotFound, err)
+		}
+		logger.Error("Error fetching total repayments: ", err)
+		return 0, err
+	}
+
+	return totalRepayment, nil
+}
+
+func (r *DBRepository) SelectRepaymentCountByLoanId(ctx context.Context, loanId int64) (int, error) {
+	logger := ctx.Value("logger").(*logrus.Entry)
+	logger.Debug("select repayment count by loan id: ", loanId)
+	var (
+		err            error
+		totalRepayment int
+	)
+
+	err = r.DB.SelectContext(ctx, &totalRepayment, selectRepaymentCountByLoanId, loanId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = errs.Wrap(http.StatusNotFound, err)
+		}
+		logger.Error("Error fetching repayment count: ", err)
+		return 0, err
+	}
+
+	return totalRepayment, nil
 }
