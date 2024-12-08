@@ -58,7 +58,9 @@ func (h *BillingHandler) MakePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	helper.JSON(w, ctx, paymentID, nil)
+	helper.JSON(w, ctx, map[string]int64{
+		"payment_id": paymentID,
+	}, nil)
 
 }
 
