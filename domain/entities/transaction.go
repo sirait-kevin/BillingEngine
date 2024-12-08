@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -71,6 +72,22 @@ const (
 func (e RepaymentScheduleType) IsValid() bool {
 	param := RepaymentScheduleType(strings.ToLower(string(e)))
 	return param == RepaymentMonthly || param == RepaymentWeekly || param == RepaymentYearly
+}
+
+func (e LoanStatus) IsActive() bool {
+	return e == LoanStatusActive
+}
+
+func (e LoanStatus) String() string {
+	switch e {
+	case LoanStatusActive:
+		return "active"
+	case LoanStatusRejected:
+		return "rejected"
+	case LoanStatusCompleted:
+		return "completed"
+	}
+	return "unknown status " + strconv.FormatInt(int64(e), 10)
 }
 
 func AddTime(time time.Time, addition int, param RepaymentScheduleType) time.Time {

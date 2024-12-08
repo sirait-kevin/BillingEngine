@@ -250,16 +250,15 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 	if err != nil {
 		return 0, err
 	}
+	if !loan.Status.IsActive() {
+		return 0, errs.NewWithMessage(http.StatusBadRequest, "loan status: "+loan.Status.String())
+	}
 
 	repaymentTotalAmount, err = u.DBRepo.SelectTotalRepaymentAmountByLoanId(ctx, loan.Id)
 	if err != nil {
 		if errs.GetHTTPCode(err) != http.StatusNotFound {
 			return 0, err
 		}
-	}
-
-	if repaymentTotalAmount >= loan.RepaymentAmount*int64(loan.Tenor) {
-		return 0, errs.NewWithMessage(http.StatusBadRequest, "loan has been fully paid")
 	}
 
 	if loan.RepaymentAmount != repaymentRequest.Amount {
