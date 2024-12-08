@@ -29,7 +29,7 @@ type (
 		ReferenceId string    `json:"reference_id"`
 		Amount      int64     `json:"amount"`
 		CreatedAt   time.Time `json:"created_at"`
-		UpdatedAt   time.Time `json:"updated_at"`
+		UpdatedAt   time.Time `json:"updated_at,omitempty"`
 	}
 
 	LoanHistory struct {
@@ -41,12 +41,6 @@ type (
 		LoanId            int64  `json:"loan_id"`
 		LoanReferenceId   string `json:"loan_reference_id"`
 		OutstandingAmount int64  `json:"outstanding_amount"`
-	}
-
-	RepaymentInquiry struct {
-		LoanId          int64             `json:"loan_id"`
-		LoanReferenceId string            `json:"loan_reference_id"`
-		RepaymentNeeded []RepaymentNeeded `json:"repayment_needed"`
 	}
 
 	RepaymentNeeded struct {

@@ -68,7 +68,7 @@ func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.Lo
 
 }
 
-func (u *BillingUseCase) GetLoanHistoryByReferenceID(ctx context.Context, referenceId string) (*entities.LoanHistory, error) {
+func (u *BillingUseCase) GetPaymentHistoryByReferenceID(ctx context.Context, referenceId string) (*entities.LoanHistory, error) {
 
 	if referenceId == "" {
 		return nil, errs.NewWithMessage(http.StatusBadRequest, "reference id can not be empty")
@@ -178,30 +178,35 @@ func (u *BillingUseCase) GetRepaymentInquiryByLoanReferenceId(ctx context.Contex
 	}
 
 	missRepaymentCount := entities.MissRepayment(loan.CreatedAt, u.Clock.Now(), repaymentCount, loan.RepaymentSchedule)
-	if missRepaymentCount == 0 {
-		return &entities.RepaymentInquiry{
-			LoanId:          loan.Id,
-			LoanReferenceId: loan.ReferenceId,
-			RepaymentNeeded: nil,
-		}, nil
-	}
 
-	needRepayments := make([]entities.RepaymentNeeded, missRepaymentCount)
+	needRepayments := []entities.RepaymentNeeded{}
 	for i := 0; i < missRepaymentCount; i++ {
 		addTime := i + repaymentCount + 1
 		dueDate := entities.AddTime(loan.CreatedAt, addTime, loan.RepaymentSchedule)
 		isLate := u.Clock.Now().After(dueDate)
 
-		needRepayments[i] = entities.RepaymentNeeded{
+		needRepayments = append(needRepayments, entities.RepaymentNeeded{
 			Amount:  loan.RepaymentAmount,
 			DueDate: dueDate,
 			IsLate:  isLate,
-		}
+		})
+	}
+
+	if len(needRepayments) == 0 && loan.Status.IsActive() {
+		addTime := repaymentCount + 1
+		dueDate := entities.AddTime(loan.CreatedAt, addTime, loan.RepaymentSchedule)
+		isLate := u.Clock.Now().After(dueDate)
+		needRepayments = append(needRepayments, entities.RepaymentNeeded{
+			Amount:  loan.RepaymentAmount,
+			DueDate: dueDate,
+			IsLate:  isLate,
+		})
 	}
 
 	return &entities.RepaymentInquiry{
 		LoanId:          loan.Id,
-		LoanReferenceId: referenceId,
+		LoanReferenceId: loan.ReferenceId,
+		LoanStatus:      loan.Status.String(),
 		RepaymentNeeded: needRepayments,
 	}, nil
 }
@@ -281,6 +286,21 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 	}
 
 	return repaymentId, nil
+}
+
+func (u *BillingUseCase) GetLoanListByUserId(ctx context.Context, userId int64) (*[]entities.Loan, error) {
+	if userId < 1 {
+		return nil, errs.NewWithMessage(http.StatusBadRequest, "user id can not be empty")
+	}
+
+	loans, err := u.DBRepo.SelectLoanByUserId(ctx, userId)
+	if err != nil {
+		if errs.GetHTTPCode(err) != http.StatusNotFound {
+			return nil, err
+		}
+	}
+
+	return loans, err
 }
 
 func IsUserValid(userId int64) bool {

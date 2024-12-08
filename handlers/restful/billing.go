@@ -30,17 +30,17 @@ func (h *BillingHandler) CreateLoan(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-func (h *BillingHandler) GetLoanHistory(w http.ResponseWriter, r *http.Request) {
+func (h *BillingHandler) GetPaymentHistory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	reference_id := r.FormValue("reference_id")
 
-	loanHistory, err := h.BillingUC.GetLoanHistoryByReferenceID(ctx, reference_id)
+	paymentHistory, err := h.BillingUC.GetPaymentHistoryByReferenceID(ctx, reference_id)
 	if err != nil {
 		helper.JSON(w, ctx, nil, err)
 		return
 	}
 
-	helper.JSON(w, ctx, loanHistory, nil)
+	helper.JSON(w, ctx, paymentHistory, nil)
 }
 
 func (h *BillingHandler) MakePayment(w http.ResponseWriter, r *http.Request) {
@@ -103,4 +103,41 @@ func (h *BillingHandler) GetPaymentInquiry(w http.ResponseWriter, r *http.Reques
 	}
 
 	helper.JSON(w, ctx, repaymentInquiry, nil)
+}
+
+func (h *BillingHandler) GetLoanHistory(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userId, err := strconv.ParseInt(r.FormValue("user_id"), 10, 64)
+	if err != nil {
+		helper.JSON(w, ctx, nil, errs.NewWithMessage(http.StatusBadRequest, "Invalid user ID"))
+		return
+	}
+
+	loans, err := h.BillingUC.GetLoanListByUserId(ctx, userId)
+	if err != nil {
+		helper.JSON(w, ctx, nil, err)
+		return
+	}
+
+	loanResponses := make([]entities.LoanResponse, len(*loans))
+	for i, l := range *loans {
+		loanResponses[i] = entities.LoanResponse{
+			Id:                l.Id,
+			ReferenceId:       l.ReferenceId,
+			Amount:            l.Amount,
+			RatePercentage:    l.RatePercentage,
+			Status:            l.Status.String(),
+			RepaymentSchedule: l.RepaymentSchedule,
+			Tenor:             l.Tenor,
+			RepaymentAmount:   l.RepaymentAmount,
+			CreatedAt:         l.CreatedAt,
+			UpdatedAt:         l.UpdatedAt,
+		}
+	}
+
+	helper.JSON(w, ctx, &entities.LoanList{
+		UserId: userId,
+		Loans:  loanResponses,
+	}, nil)
+
 }

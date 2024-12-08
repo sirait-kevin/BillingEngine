@@ -23,7 +23,7 @@ const (
 
 	selectLoanByReferenceIdQuery = `SELECT id, reference_id, user_id, amount, rate_percentage, repayment_amount, status, created_at, updated_at, tenor, repayment_schedule
 			FROM loans
-			WHERE reference_id = ?;`
+			WHERE reference_id = ? ORDER BY id DESC;`
 
 	selectActiveLoanByReferenceIdQuery = `SELECT id, reference_id, user_id, amount, rate_percentage, repayment_amount, status, created_at, updated_at, tenor, repayment_schedule
 			FROM loans
@@ -31,7 +31,7 @@ const (
 
 	selectLoanByUserIdQuery = `SELECT id, reference_id, user_id, amount, rate_percentage, repayment_amount, status, created_at, updated_at, tenor, repayment_schedule
 			FROM loans
-			WHERE user_id = ?;`
+			WHERE user_id = ? ORDER BY id DESC;`
 
 	selectRepaymentByReferenceId = `SELECT id, loan_id, reference_id, amount, created_at, updated_at
 			FROM repayments
@@ -39,7 +39,7 @@ const (
 
 	selectRepaymentByLoanId = `SELECT id, loan_id, reference_id, amount, created_at, updated_at
 			FROM repayments
-			WHERE loan_id = ?;`
+			WHERE loan_id = ? ORDER BY id DESC;`
 
 	selectTotalRepaymentAmountByLoanId = `SELECT IFNULL(SUM(amount), 0)
 			FROM repayments

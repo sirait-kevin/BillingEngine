@@ -52,10 +52,11 @@ func main() {
 	router.HandleFunc("/create/loan", billingHandler.CreateLoan).Methods(http.MethodPost)
 	router.HandleFunc("/make/payment", billingHandler.MakePayment).Methods(http.MethodPost)
 
-	router.HandleFunc("/loan/history", billingHandler.GetLoanHistory).Methods(http.MethodGet)
+	router.HandleFunc("/payment/history", billingHandler.GetPaymentHistory).Methods(http.MethodGet)
 	router.HandleFunc("/outstanding/amount", billingHandler.GetOutStandingAmount).Methods(http.MethodGet)
 	router.HandleFunc("/user/status", billingHandler.GetUserStatus).Methods(http.MethodGet)
 	router.HandleFunc("/payment/inquiry", billingHandler.GetPaymentInquiry).Methods(http.MethodGet)
+	router.HandleFunc("/loan/history", billingHandler.GetLoanHistory).Methods(http.MethodGet)
 
 	//nsqHandler := &mq.NSQHandler{BillingUseCase: useCase}
 	//startNSQConsumer(nsqHandler)
