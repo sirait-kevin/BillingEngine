@@ -52,15 +52,21 @@ const (
 	updateLoanStatusByReferenceId = `UPDATE loans SET status = ? WHERE reference_id = ?;`
 )
 
-func (r *DBRepository) CreateLoan(ctx context.Context, loan entities.Loan) (int64, error) {
+func (r *DBRepository) CreateLoan(ctx context.Context, tx *sql.Tx, loan entities.Loan) (int64, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Inserting loan into database: ", loan)
 	var (
-		err error
+		err    error
+		result sql.Result
 	)
 
-	result, err := r.DB.ExecContext(ctx, insertLoanQuery,
-		loan.ReferenceId, loan.UserId, loan.Amount, loan.RatePercentage, loan.RepaymentAmount, loan.Status, loan.Tenor, loan.RepaymentSchedule)
+	if tx != nil {
+		result, err = tx.ExecContext(ctx, insertLoanQuery,
+			loan.ReferenceId, loan.UserId, loan.Amount, loan.RatePercentage, loan.RepaymentAmount, loan.Status, loan.Tenor, loan.RepaymentSchedule)
+	} else {
+		result, err = r.DB.ExecContext(ctx, insertLoanQuery,
+			loan.ReferenceId, loan.UserId, loan.Amount, loan.RatePercentage, loan.RepaymentAmount, loan.Status, loan.Tenor, loan.RepaymentSchedule)
+	}
 	if err != nil {
 		logger.Error("Error creating loan: ", err)
 		return 0, err
@@ -141,15 +147,20 @@ func (r *DBRepository) SelectLoanByUserId(ctx context.Context, userId int64) (*[
 	return &resp, nil
 }
 
-func (r *DBRepository) CreateRepayment(ctx context.Context, repayment entities.Repayment) (int64, error) {
+func (r *DBRepository) CreateRepayment(ctx context.Context, tx *sql.Tx, repayment entities.Repayment) (int64, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Inserting loan repayment database: ", repayment)
 	var (
-		err error
+		err    error
+		result sql.Result
 	)
 
-	result, err := r.DB.ExecContext(ctx, insertRepaymentQuery,
-		repayment.LoanId, repayment.ReferenceId, repayment.Amount)
+	if tx != nil {
+		result, err = tx.ExecContext(ctx, insertRepaymentQuery, repayment.LoanId, repayment.ReferenceId, repayment.Amount)
+	} else {
+		result, err = r.DB.ExecContext(ctx, insertRepaymentQuery,
+			repayment.LoanId, repayment.ReferenceId, repayment.Amount)
+	}
 	if err != nil {
 		logger.Error("Error creating loan: ", err)
 		return 0, err
@@ -247,11 +258,21 @@ func (r *DBRepository) SelectRepaymentCountByLoanId(ctx context.Context, loanId 
 	return totalRepayment, nil
 }
 
-func (r *DBRepository) UpdateLoanStatusByReferenceId(ctx context.Context, referenceId string, status entities.LoanStatus) error {
+func (r *DBRepository) UpdateLoanStatusByReferenceId(ctx context.Context, tx *sql.Tx, referenceId string, status entities.LoanStatus) error {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug(fmt.Sprintf("Update loan status by reference id: %v, status: %v", referenceId, status))
 
-	row, err := r.DB.ExecContext(ctx, updateLoanStatusByReferenceId, status, referenceId)
+	var (
+		err error
+		row sql.Result
+	)
+
+	if tx != nil {
+		row, err = tx.ExecContext(ctx, updateLoanStatusByReferenceId, status, referenceId)
+	} else {
+		row, err = r.DB.ExecContext(ctx, updateLoanStatusByReferenceId, status, referenceId)
+	}
+
 	if err != nil {
 		logger.Error("Error UpdateLoanStatusByReferenceId: ", err)
 		return err

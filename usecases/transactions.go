@@ -11,7 +11,6 @@ import (
 
 	"github.com/sirait-kevin/BillingEngine/domain/entities"
 	"github.com/sirait-kevin/BillingEngine/pkg/errs"
-	"github.com/sirait-kevin/BillingEngine/pkg/logger"
 )
 
 func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.LoanRequest) (int64, error) {
@@ -54,7 +53,7 @@ func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.Lo
 
 	repaymentAmount := (loanRequest.Amount + (loanRequest.Amount * int64(loanRequest.RatePercentage) / 100)) / int64(loanRequest.Tenor)
 
-	loanId, err := u.DBRepo.CreateLoan(ctx, entities.Loan{
+	loanId, err := u.DBRepo.CreateLoan(ctx, nil, entities.Loan{
 		ReferenceId:       loanRequest.ReferenceId,
 		UserId:            loanRequest.UserId,
 		Amount:            loanRequest.Amount,
@@ -267,7 +266,13 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 		return 0, errs.NewWithMessage(http.StatusBadRequest, "payment amount is invalid, expected: "+strconv.FormatInt(loan.RepaymentAmount, 10))
 	}
 
-	repaymentId, err = u.DBRepo.CreateRepayment(ctx, entities.Repayment{
+	dbTx, err := u.DBRepo.BeginTx(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer dbTx.Rollback()
+
+	repaymentId, err = u.DBRepo.CreateRepayment(ctx, dbTx, entities.Repayment{
 		LoanId:      loan.Id,
 		ReferenceId: repaymentRequest.RepaymentReferenceId,
 		Amount:      repaymentRequest.Amount,
@@ -277,10 +282,15 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 	}
 
 	if repaymentTotalAmount+repaymentRequest.Amount >= loan.RepaymentAmount*int64(loan.Tenor) {
-		err = u.DBRepo.UpdateLoanStatusByReferenceId(ctx, loan.ReferenceId, entities.LoanStatusCompleted)
+		err = u.DBRepo.UpdateLoanStatusByReferenceId(ctx, dbTx, loan.ReferenceId, entities.LoanStatusCompleted)
 		if err != nil {
-			logger.Error("error UpdateLoanStatusByReferenceId", err)
+			return 0, err
 		}
+	}
+
+	err = dbTx.Commit()
+	if err != nil {
+		return 0, err
 	}
 
 	return repaymentId, nil
