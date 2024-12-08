@@ -259,7 +259,7 @@ func (r *DBRepository) SelectRepaymentCountByLoanId(ctx context.Context, loanId 
 	return totalRepayment, nil
 }
 
-func (r *DBRepository) UpdateLoanStatusByReferenceId(ctx context.Context, tx *sql.Tx, referenceId string, status entities.LoanStatus) error {
+func (r *DBRepository) UpdateLoanStatusByReferenceId(ctx context.Context, tx interfaces.AtomicTransaction, referenceId string, status entities.LoanStatus) error {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug(fmt.Sprintf("Update loan status by reference id: %v, status: %v", referenceId, status))
 
