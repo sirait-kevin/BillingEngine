@@ -13,18 +13,22 @@ import (
 
 const (
 	insertLoanQuery = `INSERT INTO loans
-			(reference_id, user_id, amount, rate_percentage, repayment_amount, status)
-			VALUES(?,?,?,?,?,?);`
+			(reference_id, user_id, amount, rate_percentage, repayment_amount, status, tenor, repayment_schedule)
+			VALUES(?,?,?,?,?,?,?,?);`
 
 	insertRepaymentQuery = `INSERT INTO repayments
 			(loan_id, reference_id, amount)
 			VALUES(?,?,?);`
 
-	selectLoanByReferenceIdQuery = `SELECT id, reference_id, user_id, amount, rate_percentage, repayment_amount, status, created_at, updated_at
+	selectLoanByReferenceIdQuery = `SELECT id, reference_id, user_id, amount, rate_percentage, repayment_amount, status, created_at, updated_at, tenor, repayment_schedule
 			FROM loans
 			WHERE reference_id = ?;`
 
-	selectLoanByUserIdQuery = `SELECT id, reference_id, user_id, amount, rate_percentage, repayment_amount, status, created_at, updated_at
+	selectActiveLoanByReferenceIdQuery = `SELECT id, reference_id, user_id, amount, rate_percentage, repayment_amount, status, created_at, updated_at, tenor, repayment_schedule
+			FROM loans
+			WHERE reference_id = ? and status=1;`
+
+	selectLoanByUserIdQuery = `SELECT id, reference_id, user_id, amount, rate_percentage, repayment_amount, status, created_at, updated_at, tenor, repayment_schedule
 			FROM loans
 			WHERE user_id = ?;`
 
@@ -36,11 +40,11 @@ const (
 			FROM repayments
 			WHERE loan_id = ?;`
 
-	selectTotalRepaymentAmountByLoanId = `SELECT SUM(amount)
+	selectTotalRepaymentAmountByLoanId = `SELECT IFNULL(SUM(amount), 0)
 			FROM repayments
 			WHERE loan_id = ?;`
 
-	selectRepaymentCountByLoanId = `SELECT COUNT(id)
+	selectRepaymentCountByLoanId = `SELECT IFNULL(COUNT(id),0)
 			FROM repayments
 			WHERE loan_id = ?;`
 )
@@ -53,7 +57,7 @@ func (r *DBRepository) CreateLoan(ctx context.Context, loan entities.Loan) (int6
 	)
 
 	result, err := r.DB.ExecContext(ctx, insertLoanQuery,
-		loan.ReferenceId, loan.UserId, loan.Amount, loan.RatePercentage, loan.RepaymentAmount, loan.Status)
+		loan.ReferenceId, loan.UserId, loan.Amount, loan.RatePercentage, loan.RepaymentAmount, loan.Status, loan.Tenor, loan.RepaymentSchedule)
 	if err != nil {
 		logger.Error("Error creating loan: ", err)
 		return 0, err
@@ -71,19 +75,40 @@ func (r *DBRepository) SelectLoanByReferenceId(ctx context.Context, referenceID 
 	logger.Debug("select loan by reference id: ", referenceID)
 	var (
 		err  error
-		loan = &entities.Loan{}
+		loan loansTable
 	)
 
 	err = r.DB.GetContext(ctx, &loan, selectLoanByReferenceIdQuery, referenceID)
 	if err != nil {
+		logger.Error("SelectLoanByReferenceId: ", err)
 		if err == sql.ErrNoRows {
 			err = errs.Wrap(http.StatusNotFound, err)
 		}
-		logger.Error("Error fetching repayment: ", err)
 		return nil, err
 	}
 
-	return loan, nil
+	return loan.toEntities(), nil
+
+}
+
+func (r *DBRepository) SelectActiveLoanByReferenceId(ctx context.Context, referenceID string) (*entities.Loan, error) {
+	logger := ctx.Value("logger").(*logrus.Entry)
+	logger.Debug("select loan by reference id: ", referenceID)
+	var (
+		err  error
+		loan loansTable
+	)
+
+	err = r.DB.GetContext(ctx, &loan, selectActiveLoanByReferenceIdQuery, referenceID)
+	if err != nil {
+		logger.Error("SelectActiveLoanByReferenceId: ", err)
+		if err == sql.ErrNoRows {
+			err = errs.Wrap(http.StatusNotFound, err)
+		}
+		return nil, err
+	}
+
+	return loan.toEntities(), nil
 
 }
 
@@ -92,19 +117,25 @@ func (r *DBRepository) SelectLoanByUserId(ctx context.Context, userId int64) (*[
 	logger.Debug("select loan by user id: ", userId)
 	var (
 		err  error
-		loan = &[]entities.Loan{}
+		loan = []loansTable{}
 	)
 
 	err = r.DB.SelectContext(ctx, &loan, selectLoanByUserIdQuery, userId)
 	if err != nil {
+		logger.Error("SelectLoanByUserId: ", err)
 		if err == sql.ErrNoRows {
 			err = errs.Wrap(http.StatusNotFound, err)
 		}
-		logger.Error("Error fetching repayment: ", err)
 		return nil, err
 	}
 
-	return loan, nil
+	resp := make([]entities.Loan, len(loan))
+
+	for i, l := range loan {
+		resp[i] = *l.toEntities()
+	}
+
+	return &resp, nil
 }
 
 func (r *DBRepository) CreateRepayment(ctx context.Context, repayment entities.Repayment) (int64, error) {
@@ -133,19 +164,19 @@ func (r *DBRepository) SelectRepaymentByReferenceId(ctx context.Context, referen
 	logger.Debug("select repayment by reference id: ", referenceID)
 	var (
 		err       error
-		repayment = &entities.Repayment{}
+		repayment = &repaymentTable{}
 	)
 
 	err = r.DB.GetContext(ctx, &repayment, selectLoanByReferenceIdQuery, referenceID)
 	if err != nil {
+		logger.Error("SelectRepaymentByReferenceId: ", err)
 		if err == sql.ErrNoRows {
 			err = errs.Wrap(http.StatusNotFound, err)
 		}
-		logger.Error("Error fetching repayment: ", err)
 		return nil, err
 	}
 
-	return repayment, nil
+	return repayment.toEntities(), nil
 
 }
 
@@ -154,19 +185,23 @@ func (r *DBRepository) SelectRepaymentByLoanId(ctx context.Context, loanId int64
 	logger.Debug("select repayment by loan id: ", loanId)
 	var (
 		err        error
-		repayments = &[]entities.Repayment{}
+		repayments []repaymentTable
 	)
 
 	err = r.DB.SelectContext(ctx, &repayments, selectRepaymentByLoanId, loanId)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			logger.Error("Error SelectRepaymentByLoanId: ", err)
 			err = errs.Wrap(http.StatusNotFound, err)
 		}
-		logger.Error("Error fetching repayment: ", err)
 		return nil, err
 	}
+	resp := make([]entities.Repayment, len(repayments))
+	for i, l := range repayments {
+		resp[i] = *l.toEntities()
+	}
 
-	return repayments, nil
+	return &resp, nil
 }
 
 func (r *DBRepository) SelectTotalRepaymentAmountByLoanId(ctx context.Context, loanId int64) (int64, error) {
@@ -177,12 +212,12 @@ func (r *DBRepository) SelectTotalRepaymentAmountByLoanId(ctx context.Context, l
 		totalRepayment int64
 	)
 
-	err = r.DB.SelectContext(ctx, &totalRepayment, selectTotalRepaymentAmountByLoanId, loanId)
+	err = r.DB.GetContext(ctx, &totalRepayment, selectTotalRepaymentAmountByLoanId, loanId)
 	if err != nil {
+		logger.Error("Error fetching SelectTotalRepaymentAmountByLoanId: ", err)
 		if err == sql.ErrNoRows {
 			err = errs.Wrap(http.StatusNotFound, err)
 		}
-		logger.Error("Error fetching total repayments: ", err)
 		return 0, err
 	}
 
@@ -197,12 +232,12 @@ func (r *DBRepository) SelectRepaymentCountByLoanId(ctx context.Context, loanId 
 		totalRepayment int
 	)
 
-	err = r.DB.SelectContext(ctx, &totalRepayment, selectRepaymentCountByLoanId, loanId)
+	err = r.DB.GetContext(ctx, &totalRepayment, selectRepaymentCountByLoanId, loanId)
 	if err != nil {
+		logger.Error("Error SelectRepaymentCountByLoanId: ", err)
 		if err == sql.ErrNoRows {
 			err = errs.Wrap(http.StatusNotFound, err)
 		}
-		logger.Error("Error fetching repayment count: ", err)
 		return 0, err
 	}
 

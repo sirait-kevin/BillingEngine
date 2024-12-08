@@ -66,13 +66,13 @@ func (h *BillingHandler) GetOutStandingAmount(w http.ResponseWriter, r *http.Req
 	ctx := r.Context()
 	referenceId := r.FormValue("reference_id")
 
-	outstanding, err := h.BillingUC.GetOutStandingAmountByReferenceID(ctx, referenceId)
+	inquiry, err := h.BillingUC.GetOutStandingAmountByReferenceID(ctx, referenceId)
 	if err != nil {
 		helper.JSON(w, ctx, nil, err)
 		return
 	}
 
-	helper.JSON(w, ctx, outstanding, nil)
+	helper.JSON(w, ctx, inquiry, nil)
 }
 
 func (h *BillingHandler) GetUserStatus(w http.ResponseWriter, r *http.Request) {
