@@ -61,9 +61,7 @@ BillingEngine
 ## Features
 
 - **Clean Architecture**: Promotes separation of concerns and a decoupled codebase.
-- **NSQ Integration**: Handles background tasks and messaging for updating user data.
 - **Middleware**: For logging, error handling, and signature verification to ensure secure API access.
-- **Encryption**: Sensitive user data is encrypted before being stored in the database.
 - **Docker**: Containerizes the application for easy setup and deployment.
 
 ## Setup and Running the Application
