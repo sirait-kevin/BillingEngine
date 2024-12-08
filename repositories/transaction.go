@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/sirait-kevin/BillingEngine/domain/entities"
+	"github.com/sirait-kevin/BillingEngine/domain/interfaces"
 	"github.com/sirait-kevin/BillingEngine/pkg/errs"
 )
 
@@ -52,7 +53,7 @@ const (
 	updateLoanStatusByReferenceId = `UPDATE loans SET status = ? WHERE reference_id = ?;`
 )
 
-func (r *DBRepository) CreateLoan(ctx context.Context, tx *sql.Tx, loan entities.Loan) (int64, error) {
+func (r *DBRepository) CreateLoan(ctx context.Context, tx interfaces.AtomicTransaction, loan entities.Loan) (int64, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Inserting loan into database: ", loan)
 	var (
@@ -147,7 +148,7 @@ func (r *DBRepository) SelectLoanByUserId(ctx context.Context, userId int64) (*[
 	return &resp, nil
 }
 
-func (r *DBRepository) CreateRepayment(ctx context.Context, tx *sql.Tx, repayment entities.Repayment) (int64, error) {
+func (r *DBRepository) CreateRepayment(ctx context.Context, tx interfaces.AtomicTransaction, repayment entities.Repayment) (int64, error) {
 	logger := ctx.Value("logger").(*logrus.Entry)
 	logger.Debug("Inserting loan repayment database: ", repayment)
 	var (

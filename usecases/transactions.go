@@ -32,13 +32,17 @@ func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.Lo
 	if loanRequest.Tenor < 1 {
 		errMessage = append(errMessage, "Tenor is required")
 	}
-	_, err := u.DBRepo.SelectLoanByReferenceId(ctx, loanRequest.ReferenceId)
-	if err == nil {
-		errMessage = append(errMessage, "Loan already exists")
-	}
 
 	if errMessage != nil || len(errMessage) != 0 {
 		return 0, errs.NewWithMessage(http.StatusBadRequest, strings.Join(errMessage, ","))
+	}
+
+	_, err := u.DBRepo.SelectLoanByReferenceId(ctx, loanRequest.ReferenceId)
+	if err == nil {
+		return 0, errs.NewWithMessage(http.StatusBadRequest, "reference id already exists")
+	}
+	if errs.GetHTTPCode(err) != http.StatusNotFound {
+		return 0, err
 	}
 
 	isDelinquent, err := u.GetUserStatusIsDelinquent(ctx, loanRequest.UserId)
@@ -123,7 +127,11 @@ func (u *BillingUseCase) GetUserStatusIsDelinquent(ctx context.Context, userId i
 
 	loans, err := u.DBRepo.SelectLoanByUserId(ctx, userId)
 	if err != nil {
-		return false, err
+		if errs.GetHTTPCode(err) != http.StatusNotFound {
+			return false, err
+		} else {
+			return false, nil
+		}
 	}
 	repaymentCounts := map[int64]int{}
 	errWg := make([]error, len(*loans))
@@ -135,7 +143,7 @@ func (u *BillingUseCase) GetUserStatusIsDelinquent(ctx context.Context, userId i
 			defer wg.Done()
 			repaymentCounts[loan.Id], errWg[i] = u.DBRepo.SelectRepaymentCountByLoanId(ctx, loan.Id)
 			if errWg[i] != nil {
-				if errs.GetHTTPCode(errWg[i]) != http.StatusNotFound {
+				if errs.GetHTTPCode(errWg[i]) == http.StatusNotFound {
 					errWg[i] = nil
 				}
 			}
@@ -143,9 +151,9 @@ func (u *BillingUseCase) GetUserStatusIsDelinquent(ctx context.Context, userId i
 	}
 	wg.Wait()
 
-	for _, err = range errWg {
-		if err != nil {
-			return false, err
+	for _, errW := range errWg {
+		if errW != nil {
+			return false, errW
 		}
 	}
 
@@ -237,6 +245,9 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 	_, err = u.DBRepo.SelectRepaymentByReferenceId(ctx, repaymentRequest.RepaymentReferenceId)
 	if err == nil {
 		return 0, errs.NewWithMessage(http.StatusBadRequest, "reference id already exists")
+	}
+	if errs.GetHTTPCode(err) != http.StatusNotFound {
+		return 0, err
 	}
 
 	loan, err = u.DBRepo.SelectLoanByReferenceId(ctx, repaymentRequest.LoanReferenceId)

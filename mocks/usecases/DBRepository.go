@@ -6,11 +6,11 @@ package mock_usecase
 
 import (
 	context "context"
-	sql "database/sql"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 	entities "github.com/sirait-kevin/BillingEngine/domain/entities"
+	interfaces "github.com/sirait-kevin/BillingEngine/domain/interfaces"
 )
 
 // MockDBRepository is a mock of DBRepository interface.
@@ -37,10 +37,10 @@ func (m *MockDBRepository) EXPECT() *MockDBRepositoryMockRecorder {
 }
 
 // BeginTx mocks base method.
-func (m *MockDBRepository) BeginTx(arg0 context.Context) (*sql.Tx, error) {
+func (m *MockDBRepository) BeginTx(arg0 context.Context) (interfaces.AtomicTransaction, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "BeginTx", arg0)
-	ret0, _ := ret[0].(*sql.Tx)
+	ret0, _ := ret[0].(interfaces.AtomicTransaction)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -52,7 +52,7 @@ func (mr *MockDBRepositoryMockRecorder) BeginTx(arg0 interface{}) *gomock.Call {
 }
 
 // CreateLoan mocks base method.
-func (m *MockDBRepository) CreateLoan(arg0 context.Context, arg1 *sql.Tx, arg2 entities.Loan) (int64, error) {
+func (m *MockDBRepository) CreateLoan(arg0 context.Context, arg1 interfaces.AtomicTransaction, arg2 entities.Loan) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLoan", arg0, arg1, arg2)
 	ret0, _ := ret[0].(int64)
@@ -67,7 +67,7 @@ func (mr *MockDBRepositoryMockRecorder) CreateLoan(arg0, arg1, arg2 interface{})
 }
 
 // CreateRepayment mocks base method.
-func (m *MockDBRepository) CreateRepayment(arg0 context.Context, arg1 *sql.Tx, arg2 entities.Repayment) (int64, error) {
+func (m *MockDBRepository) CreateRepayment(arg0 context.Context, arg1 interfaces.AtomicTransaction, arg2 entities.Repayment) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateRepayment", arg0, arg1, arg2)
 	ret0, _ := ret[0].(int64)
@@ -172,7 +172,7 @@ func (mr *MockDBRepositoryMockRecorder) SelectTotalRepaymentAmountByLoanId(arg0,
 }
 
 // UpdateLoanStatusByReferenceId mocks base method.
-func (m *MockDBRepository) UpdateLoanStatusByReferenceId(arg0 context.Context, arg1 *sql.Tx, arg2 string, arg3 entities.LoanStatus) error {
+func (m *MockDBRepository) UpdateLoanStatusByReferenceId(arg0 context.Context, arg1 interfaces.AtomicTransaction, arg2 string, arg3 entities.LoanStatus) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateLoanStatusByReferenceId", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
