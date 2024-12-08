@@ -8,6 +8,7 @@ import (
 	"github.com/sirait-kevin/BillingEngine/domain/interfaces"
 )
 
+//go:generate mockgen -build_flags=-mod=mod -destination ../mocks/usecases/DBRepository.go -package=mock_usecase github.com/sirait-kevin/BillingEngine/usecases DBRepository
 type DBRepository interface {
 	CreateLoan(ctx context.Context, tx *sql.Tx, loan entities.Loan) (int64, error)
 	SelectLoanByReferenceId(ctx context.Context, referenceID string) (*entities.Loan, error)
