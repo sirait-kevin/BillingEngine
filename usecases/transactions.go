@@ -2,8 +2,6 @@ package usecases
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -151,10 +149,6 @@ func (u *BillingUseCase) GetUserStatusIsDelinquent(ctx context.Context, userId i
 		}
 	}
 
-	l, _ := json.Marshal(loans)
-	r, _ := json.Marshal(repaymentCounts)
-	fmt.Println("loan: ", string(l), string(r))
-
 	for _, loan := range *loans {
 		if loan.Tenor > repaymentCounts[loan.Id] {
 			if entities.MissRepayment(loan.CreatedAt, u.Clock.Now(), repaymentCounts[loan.Id], loan.RepaymentSchedule) > 1 {
@@ -177,8 +171,6 @@ func (u *BillingUseCase) GetRepaymentInquiryByLoanReferenceId(ctx context.Contex
 	}
 
 	repaymentCount, err := u.DBRepo.SelectRepaymentCountByLoanId(ctx, loan.Id)
-	fmt.Println("here: ", repaymentCount)
-
 	if err != nil {
 		if errs.GetHTTPCode(err) != http.StatusNotFound {
 			return nil, err
@@ -186,8 +178,6 @@ func (u *BillingUseCase) GetRepaymentInquiryByLoanReferenceId(ctx context.Contex
 	}
 
 	missRepaymentCount := entities.MissRepayment(loan.CreatedAt, u.Clock.Now(), repaymentCount, loan.RepaymentSchedule)
-	fmt.Println("here missRepaymentCount: ", missRepaymentCount)
-
 	if missRepaymentCount == 0 {
 		return &entities.RepaymentInquiry{
 			LoanId:          loan.Id,
@@ -199,7 +189,6 @@ func (u *BillingUseCase) GetRepaymentInquiryByLoanReferenceId(ctx context.Contex
 	needRepayments := make([]entities.RepaymentNeeded, missRepaymentCount)
 	for i := 0; i < missRepaymentCount; i++ {
 		addTime := i + repaymentCount + 1
-		fmt.Println("here2", addTime, loan.RepaymentSchedule)
 		dueDate := entities.AddTime(loan.CreatedAt, addTime, loan.RepaymentSchedule)
 		isLate := u.Clock.Now().After(dueDate)
 
@@ -240,9 +229,8 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 		return 0, errs.NewWithMessage(http.StatusBadRequest, strings.Join(errMessage, "; "))
 	}
 
-	r, err := u.DBRepo.SelectRepaymentByReferenceId(ctx, repaymentRequest.RepaymentReferenceId)
+	_, err = u.DBRepo.SelectRepaymentByReferenceId(ctx, repaymentRequest.RepaymentReferenceId)
 	if err == nil {
-		fmt.Println("r: ", r)
 		return 0, errs.NewWithMessage(http.StatusBadRequest, "reference id already exists")
 	}
 
