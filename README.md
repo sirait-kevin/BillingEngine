@@ -57,3 +57,32 @@ BillingEngine
 └── vendor
 </pre>
 
+
+## Features
+
+- **Clean Architecture**: Promotes separation of concerns and a decoupled codebase.
+- **NSQ Integration**: Handles background tasks and messaging for updating user data.
+- **Middleware**: For logging, error handling, and signature verification to ensure secure API access.
+- **Encryption**: Sensitive user data is encrypted before being stored in the database.
+- **Docker**: Containerizes the application for easy setup and deployment.
+
+## Setup and Running the Application
+
+### Prerequisites
+
+- Docker and Docker Compose installed.
+- go 1.20 installed
+
+### Steps
+
+1. **Clone the Repository**:
+   ```sh
+   git clone https://github.com/sirait-kevin/BillingEngine.git
+   cd BillingEngine
+    ```
+2. **Setup**
+    ```sh
+    run setup.sh
+    ```
+3. **To Run**
+    See the makefile
