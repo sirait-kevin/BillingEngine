@@ -251,7 +251,7 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 		return 0, err
 	}
 	if !loan.Status.IsActive() {
-		return 0, errs.NewWithMessage(http.StatusBadRequest, "loan status: "+loan.Status.String())
+		return 0, errs.NewWithMessage(http.StatusBadRequest, "loan status has been "+loan.Status.String())
 	}
 
 	repaymentTotalAmount, err = u.DBRepo.SelectTotalRepaymentAmountByLoanId(ctx, loan.Id)
