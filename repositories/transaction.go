@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -47,6 +48,8 @@ const (
 	selectRepaymentCountByLoanId = `SELECT IFNULL(COUNT(id),0)
 			FROM repayments
 			WHERE loan_id = ?;`
+
+	updateLoanStatusByReferenceId = `UPDATE loans SET status = ? WHERE reference_id = ?;`
 )
 
 func (r *DBRepository) CreateLoan(ctx context.Context, loan entities.Loan) (int64, error) {
@@ -164,10 +167,10 @@ func (r *DBRepository) SelectRepaymentByReferenceId(ctx context.Context, referen
 	logger.Debug("select repayment by reference id: ", referenceID)
 	var (
 		err       error
-		repayment = &repaymentTable{}
+		repayment = repaymentTable{}
 	)
 
-	err = r.DB.GetContext(ctx, &repayment, selectLoanByReferenceIdQuery, referenceID)
+	err = r.DB.GetContext(ctx, &repayment, selectRepaymentByReferenceId, referenceID)
 	if err != nil {
 		logger.Error("SelectRepaymentByReferenceId: ", err)
 		if err == sql.ErrNoRows {
@@ -242,4 +245,22 @@ func (r *DBRepository) SelectRepaymentCountByLoanId(ctx context.Context, loanId 
 	}
 
 	return totalRepayment, nil
+}
+
+func (r *DBRepository) UpdateLoanStatusByReferenceId(ctx context.Context, referenceId string, status entities.LoanStatus) error {
+	logger := ctx.Value("logger").(*logrus.Entry)
+	logger.Debug(fmt.Sprintf("Update loan status by reference id: %v, status: %v", referenceId, status))
+
+	row, err := r.DB.ExecContext(ctx, updateLoanStatusByReferenceId, status, referenceId)
+	if err != nil {
+		logger.Error("Error UpdateLoanStatusByReferenceId: ", err)
+		return err
+	}
+	if row == nil {
+		err = errs.Wrap(http.StatusNotFound, err)
+		logger.Error("Error UpdateLoanStatusByReferenceId: ", err)
+		return err
+	}
+
+	return nil
 }

@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/sirait-kevin/BillingEngine/domain/entities"
 	"github.com/sirait-kevin/BillingEngine/pkg/errs"
+	"github.com/sirait-kevin/BillingEngine/pkg/logger"
 )
 
 func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.LoanRequest) (int64, error) {
@@ -40,6 +42,14 @@ func (u *BillingUseCase) CreateLoan(ctx context.Context, loanRequest entities.Lo
 
 	if errMessage != nil || len(errMessage) != 0 {
 		return 0, errs.NewWithMessage(http.StatusBadRequest, strings.Join(errMessage, ","))
+	}
+
+	isDelinquent, err := u.GetUserStatusIsDelinquent(ctx, loanRequest.UserId)
+	if err != nil {
+		return 0, err
+	}
+	if isDelinquent {
+		return 0, errs.NewWithMessage(http.StatusForbidden, "User is delinquent")
 	}
 
 	repaymentAmount := (loanRequest.Amount + (loanRequest.Amount * int64(loanRequest.RatePercentage) / 100)) / int64(loanRequest.Tenor)
@@ -231,6 +241,12 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 		return 0, errs.NewWithMessage(http.StatusBadRequest, strings.Join(errMessage, "; "))
 	}
 
+	r, err := u.DBRepo.SelectRepaymentByReferenceId(ctx, repaymentRequest.RepaymentReferenceId)
+	if err == nil {
+		fmt.Println("r: ", r)
+		return 0, errs.NewWithMessage(http.StatusBadRequest, "reference id already exists")
+	}
+
 	loan, err = u.DBRepo.SelectLoanByReferenceId(ctx, repaymentRequest.LoanReferenceId)
 	if err != nil {
 		return 0, err
@@ -243,12 +259,12 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 		}
 	}
 
-	if repaymentTotalAmount == loan.RepaymentAmount*int64(loan.Tenor) {
-		return 0, errs.NewWithMessage(http.StatusBadRequest, "loan has already fully paid")
+	if repaymentTotalAmount >= loan.RepaymentAmount*int64(loan.Tenor) {
+		return 0, errs.NewWithMessage(http.StatusBadRequest, "loan has been fully paid")
 	}
 
 	if loan.RepaymentAmount != repaymentRequest.Amount {
-		return 0, errs.NewWithMessage(http.StatusBadRequest, "payment amount is invalid")
+		return 0, errs.NewWithMessage(http.StatusBadRequest, "payment amount is invalid, expected: "+strconv.FormatInt(loan.RepaymentAmount, 10))
 	}
 
 	repaymentId, err = u.DBRepo.CreateRepayment(ctx, entities.Repayment{
@@ -259,6 +275,14 @@ func (u *BillingUseCase) MakePayment(ctx context.Context, repaymentRequest entit
 	if err != nil {
 		return 0, err
 	}
+
+	if repaymentTotalAmount+repaymentRequest.Amount >= loan.RepaymentAmount*int64(loan.Tenor) {
+		err = u.DBRepo.UpdateLoanStatusByReferenceId(ctx, loan.ReferenceId, entities.LoanStatusCompleted)
+		if err != nil {
+			logger.Error("error UpdateLoanStatusByReferenceId", err)
+		}
+	}
+
 	return repaymentId, nil
 }
 

@@ -16,6 +16,7 @@ type DBRepository interface {
 	SelectRepaymentByLoanId(ctx context.Context, loanIds int64) (*[]entities.Repayment, error)
 	SelectTotalRepaymentAmountByLoanId(ctx context.Context, loanId int64) (int64, error)
 	SelectRepaymentCountByLoanId(ctx context.Context, loanId int64) (int, error)
+	UpdateLoanStatusByReferenceId(ctx context.Context, referenceId string, status entities.LoanStatus) error
 }
 
 type BillingUseCase struct {
